@@ -3,8 +3,6 @@
 #include <string.h>
 #include "options.h"
 
-/* Naomy écrit ton code ici — options : -n fichier -i -R -b */
-
 void option_n(unsigned int ip, unsigned int port, char *output, size_t out_size) {
 	struct in_addr addr;
 	addr.s_adrr = ip;
@@ -17,7 +15,7 @@ void option_fichier(const char *link_tagret, int *match) {
 	}
 	else {
 		*match = (strcmp(link_target, cible_target) == 0)
-}
+	}
 }
 
 void option_i(char *addr)    { /* TODO */ }
