@@ -3,8 +3,6 @@
 #include <string.h>
 #include "options.h"
 
-/* Naomy écrit ton code ici — options : -n fichier -i -R -b */
-
 void option_n(unsigned int ip, unsigned int port, char *output, size_t out_size) {
 	struct in_addr addr;
 	addr.s_adrr = ip;
@@ -17,10 +15,42 @@ void option_fichier(const char *link_tagret, int *match) {
 	}
 	else {
 		*match = (strcmp(link_target, cible_target) == 0)
-}
+	}
 }
 
-void option_i(char *addr)    { /* TODO */ }
+void option_i(const char *link_target, char *net_info, size_t size) {
+	if (!flag_i) return;
+	if (strcmp(link_target, "socket : [", 8) != 0) {
+		net_info[0] = '\0';
+		return;
+	} 
+	long inode;
+	sscanf(link_target, "socket : [%ld]", &inode);
+	
+	FILE *fp = fopen("/proc/net/tcp", "r");
+	if (!fp) return;
+	
+	char line[256];
+	while (fgets(line, sizeof(line), fp)) {
+		unsigned int loc_ip, loc_port, rem_ip, rem_port;
+		int state;
+		long curr_inode;
+
+		if (sscanf(line, "%*d : %X:%X %X:%X %X %*x:%*x %*x:%*x %*x %*d %*d %ld", &loc_ip, &loc_port, &rem_ip, &rem_port, &state, &curr_inode) == 6) {
+			if (curr_inode == inode) {
+				char loc_str[64], rem_str[64];
+				option_n(loc_ip, loc_port, loc_str, sizeof(loc_str));
+				option_n(rem_ip, rem_port, rem_str, sizeof(rem_str));
+				
+				const char *st = (state == 0x0A) ? "LISTEN" : (state == 0x01) ? "ESTABLISHED" : "UNKNOWN";
+				snprintf(net_info, size, "TCP %s -> %s (%s)", loc_str, rem_str, st);
+				break;
+			}
+		}
+	}
+	fclose(fp);
+}
+
 void option_R(const char *pid, char *ppid_out)  {
 	if (!flag_R) return;
 	
