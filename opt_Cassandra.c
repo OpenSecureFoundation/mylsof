@@ -10,70 +10,132 @@
 
 /* Cassandra écrit ton code ici — options : -d -u -l -F -S */
 
-void filter_by_fd(const char *fd_list) {
-   DIR *proc_dir;
+     void opt_d(t_lsof*data) {
+   DIR *dir;
    struct dirent *entry;
-   char fd_path[512];
-   proc_dir = opendir("/proc");
-   if(!proc_dir)
-      return ;
-   while ((entry = readdir(proc_dir)) !=NULL
+   char path[256];
+  
+   snprintf(path,sizeof(path), "/proc/%d/fd",data->pid);
+   dir = opendir(path);
+   if(!dir)
    {
-     if (!is_numeric(entry->d_name))
-         continue;
-     snprintf(fd_path, sizeof(fd_path),
-          "/proc/%s/fd" , entry->d_name);
-     list_fds_matching(fd_path,fd_list);
+     perror("opendir -d");
+     return;
    }
- 
-  closedir(proc_dir);
-
- }
-void filter_by_user(const char *usename)      {
-    
-   struct passwd *pw;
-   uid_t          target_uid;
-   DIR            *proc_dir;
+   while((entry = readdir(dir)) !=NULL)
+   {
+     if (atoi(entry->d_name) == data->fd_filter)
+     {
+       snprint(fd_path,sizeof(fd_path),"%s/%s",path,entry->d_name);
+       printf("fd: %s-> %s\n",entry->d_name,fd_path);
+     }
+   }
+    closedir(dir);
+}
+   void opt_u(t_lsof*data)
+{
+  struct passwd *pw;
+   DIR    *dir;
    struct dirent  *entry;
 
-  pw = getpwnam(username);
-  if(!pw)
-  {
-    fprintf(stderr, "mylsof: user not found: %s/n,username);
-    return;
-}
-target_uid = pw->pw_uid;
-proc_dir = opendir("/proc");
-if (!proc_dir)
-    return ;
-while  ((entry =readdir(proc_dir)) !=NULL)
-  {
-    if(!is_numeric(entry->d_name))
-        continue;
-    print_if_owner(entry->d_name, target_uid);
-  }
-  closedir(proc_dir);
-}
- 
-void option_l(uid_t uid, int show_numeric)
- {
-  
-   struct passwd *pw;
-
-  if(show_numeric)
+   pw = getpwnam(data->username);
+   if(!pw)
    {
-     print("%-8u" , uid);
-     return ;
+    fprintf(stderr, "utilisateur introuvable: %s/n",data->username);
+    return;
    }
-pw = getpwuid(uid);
-if (pw)
-    printf("%-8u",pw->pw_name);
-else
-   printf("%-8u" ,uid);
+   dir = opendir("/proc");
+   if(!dir)
+   {
+     perror("opendir -u");
+     return;
+   }
+   while((entry = readdir(dir))!=NULL)
+   {
+    if(atoi(entry->d_name)> 0)
+       printf("PID %s appartient a uid %d\n",entry->d_name,pw->pw_uid);
+   }
+    closedir(dir);
+}
+   void opt_l(t_lsof*data)
+ {
+   DIR *dir;
+  struct dirent *entry;
+  char status_path[256];
+  FILE *f;
+  char line[256];
+
+  dir = opendir("/proc");
+  if (!dir)
+  {
+   perror("opendir -l");
+   return;
+  }
+  while ((entry = readdir(dir))!=NULL)
+  {
+    if (atoi(entry->d_name)>0)
+    {
+      snprintf(status_path,sizeof(status_path),"/proc/%s/status",entry->d_name);
+      f = fopen(status_path,"r");
+      if(!f)
+         continue;
+      while(fgets(line,sizeof(line),f))
+      {
+        if(strncmp(line, "Uid:",4) ==0)
+        {
+          printf("PID %s ->%s",entry->d_name,line);
+          break;
+        }
+      }
+      fclose(f);
+    }
+  }
+   closedir(dir);
 }
 
-void option_F(char *fields)    { /* TODO */ }
-void option_S(int sec)         { /* TODO */ }
+
+  void opt_F(t_lsof *data)
+{
+  DIR *dir;
+  struct dirent *entry;
+  char fd_path[256];
+  char target[256];
+  ssize_t len;
+
+  snprintf(fd_path,sizeof(fd_path),"/proc/%d/fd",data->pid);
+  dir = opendir(fd_path);
+  if(!dir)
+  {
+    perror("opendir -F");
+    return;
+  }
+  printf("p%d\n",data->pid);
+  while((entry = readdir(dir) !=NULL)
+  {
+   if(atoi(entry->d_name)>=0)
+   {
+     char full[512];
+     snprintf(full,sizeof(full),"%s/%s",fd_path,entry->d_name);
+     len = readlink(full,target,sizeof(target)-1);
+     if (len!=1)
+     {
+       target[len]='\0';
+       printf("f%s\n",entry->d_name);
+       printf("n%s\n",target);
+     }
+   }
+  }
+   closedir(dir);
+}
+   void opt_S(t_lsof *data)
+{
+  if(data->timeout < 2)
+  {
+    fprintf(stderr,"Timeout minimum:2 secondes.valeur forcee a 2.\n");
+    data->timeout = 2;
+  }
+   printf("timeout defini a %d secondes\n",data->timeout);
+}
 
 int gerer_options_Cassandra(int argc, char *argv[]) {
     /* Cassandra ajoute tes if ici */
