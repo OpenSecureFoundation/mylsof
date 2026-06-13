@@ -260,7 +260,98 @@ void option_U() {
     closedir(dossier_proc);
 }
 
-void option_s(char *proto) { /* TODO */ }
+
+
+/*---------- OPTION -s ----------*/
+
+
+void option_s(char *proto) {
+
+    (void)proto;
+
+    DIR *proc;
+    struct dirent *entree;
+
+    char chemin[256];
+    char lien[256];
+    char nom[256];
+
+    struct stat info;
+
+    proc = opendir("/proc");
+
+    if (proc == NULL) {
+        printf("Erreur /proc\n");
+        return;
+    }
+
+    while ((entree = readdir(proc)) != NULL) {
+
+        int pid = atoi(entree->d_name);
+
+        if (pid <= 0)
+            continue;
+
+        /* nom processus */
+        sprintf(chemin, "/proc/%d/comm", pid);
+
+        FILE *f = fopen(chemin, "r");
+
+        if (f == NULL)
+            continue;
+
+        fgets(nom, sizeof(nom), f);
+
+        fclose(f);
+
+        nom[strcspn(nom, "\n")] = 0;
+
+        /* dossier fd */
+        sprintf(chemin, "/proc/%d/fd", pid);
+
+        DIR *fd = opendir(chemin);
+
+        if (fd == NULL)
+            continue;
+
+        struct dirent *fd_entree;
+
+        while ((fd_entree = readdir(fd)) != NULL) {
+
+            if (fd_entree->d_name[0] == '.')
+                continue;
+
+            sprintf(chemin,
+                    "/proc/%d/fd/%s",
+                    pid,
+                    fd_entree->d_name);
+
+            int len = readlink(chemin,
+                               lien,
+                               sizeof(lien) - 1);
+
+            if (len == -1)
+                continue;
+
+            lien[len] = '\0';
+
+            if (stat(lien, &info) == 0) {
+
+                printf("%s  %d  %ld octets  %s\n",
+                       nom,
+                       pid,
+                       (long)info.st_size,
+                       lien);
+            }
+        }
+
+        closedir(fd);
+    }
+
+    closedir(proc);
+}
+
+
 void option_X()            { /* TODO */ }
 
 int gerer_options_Salif(int argc, char *argv[]) {
