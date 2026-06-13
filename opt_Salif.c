@@ -352,7 +352,95 @@ void option_s(char *proto) {
 }
 
 
-void option_X()            { /* TODO */ }
+
+
+/* ----------OPTION ----------*/
+
+
+void option_X() {
+
+    printf("Affichage des fichiers mappés en mémoire...\n");
+
+    DIR *dossier_proc;
+    struct dirent *entree;
+
+    char chemin[512];
+    char ligne[1024];
+    char nom_process[256];
+
+    dossier_proc = opendir("/proc");
+
+    if (dossier_proc == NULL) {
+        printf("Erreur ouverture /proc\n");
+        return;
+    }
+
+    while ((entree = readdir(dossier_proc)) != NULL) {
+
+        int pid = atoi(entree->d_name);
+
+        if (pid <= 0)
+            continue;
+
+        snprintf(chemin,
+                 sizeof(chemin),
+                 "/proc/%d/comm",
+                 pid);
+
+        FILE *f = fopen(chemin, "r");
+
+        if (f == NULL)
+            continue;
+
+        fgets(nom_process,
+              sizeof(nom_process),
+              f);
+
+        fclose(f);
+
+        nom_process[strcspn(nom_process, "\n")] = 0;
+
+        snprintf(chemin,
+                 sizeof(chemin),
+                 "/proc/%d/maps",
+                 pid);
+
+        FILE *f_maps = fopen(chemin, "r");
+
+        if (f_maps == NULL)
+            continue;
+
+        while (fgets(ligne,
+                      sizeof(ligne),
+                      f_maps)) {
+
+            char adresse[64];
+            char fichier[512];
+
+            fichier[0] = '\0';
+
+            sscanf(ligne,
+                   "%63s %*s %*s %*s %*s %511[^\n]",
+                   adresse,
+                   fichier);
+
+            if (fichier[0] == '/') {
+
+                printf("%-20s %-6d %-20s %-40s\n",
+                       nom_process,
+                       pid,
+                       adresse,
+                       fichier);
+            }
+        }
+
+        fclose(f_maps);
+    }
+
+    closedir(dossier_proc);
+}
+
+
 
 int gerer_options_Salif(int argc, char *argv[]) {
     /* Salif ajoute tes if ici */
