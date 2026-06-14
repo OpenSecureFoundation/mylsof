@@ -523,7 +523,223 @@ void option_Z(void) {
 }
 
 
+/* ----------OPTION -N ----------*/
 
+
+#include "options.h"
+
+void option_N(void) {
+
+    DIR *dossier_proc;       /* pour ouvrir /proc */
+    struct dirent *entree;   /* pour lire chaque élément de /proc */
+    char chemin[512];        /* stocke un chemin de fichier */
+    char lien[512];          /* stocke la destination d'un lien */
+    char nom_process[256];   /* stocke le nom du processus */
+
+    printf("Fichiers NFS ouverts\n\n");
+    printf("%-20s %-6s %-6s %-50s\n", "COMMANDE", "PID", "FD", "FICHIER NFS");
+    printf("%-20s %-6s %-6s %-50s\n", "--------", "---", "--", "-----------");
+
+    /* Ouvrir /proc pour parcourir tous les processus */
+    dossier_proc = opendir("/proc");
+    if (dossier_proc == NULL) {
+        printf("Erreur : impossible d'ouvrir /proc\n");
+        return;
+    }
+
+    while ((entree = readdir(dossier_proc)) != NULL) {
+
+        /* Vérifier si c'est un numéro de PID */
+        int pid = atoi(entree->d_name);
+        if (pid <= 0) continue;
+
+        /* Lire le nom du processus dans /proc/PID/comm */
+        snprintf(chemin, sizeof(chemin), "/proc/%d/comm", pid);
+        FILE *f = fopen(chemin, "r");
+        if (f == NULL) continue;
+        fgets(nom_process, sizeof(nom_process), f);
+        fclose(f);
+        nom_process[strcspn(nom_process, "\n")] = 0; /* enlever le \n */
+
+        /* Ouvrir /proc/PID/fd pour lister les fichiers ouverts */
+        snprintf(chemin, sizeof(chemin), "/proc/%d/fd", pid);
+        DIR *dossier_fd = opendir(chemin);
+        if (dossier_fd == NULL) continue;
+
+        struct dirent *fd_entree;
+        while ((fd_entree = readdir(dossier_fd)) != NULL) {
+
+            if (fd_entree->d_name[0] == '.') continue;
+
+            /* Lire où pointe le lien symbolique */
+            snprintf(chemin, sizeof(chemin), "/proc/%d/fd/%s", pid, fd_entree->d_name);
+            int len = readlink(chemin, lien, sizeof(lien) - 1);
+            if (len == -1) continue;
+            lien[len] = '\0';
+
+            /* Un fichier NFS est monté dans /net/ ou /nfs/ ou contient "nfs" */
+            /* On vérifie si le chemin commence par /net/ ou /nfs/ */
+            if (strncmp(lien, "/net/", 5) == 0 ||
+                strncmp(lien, "/nfs/", 5) == 0 ||
+                strstr(lien, "nfs") != NULL) {
+
+                printf("%-20s %-6d %-6s %-50s\n",
+                       nom_process, pid,
+                       fd_entree->d_name,
+                       lien);
+            }
+        }
+        closedir(dossier_fd);
+    }
+    closedir(dossier_proc);
+}
+
+
+
+/* ----------OPTION -j ----------*/
+
+#include "options.h"
+
+void option_j(void) {
+
+    DIR *dossier_proc;
+    struct dirent *entree;
+    char chemin[512];
+    char lien[512];
+    char nom_process[256];
+    char ns_lien[256];     /* stocke le namespace du processus */
+
+    printf("Namespaces des processus\n\n");
+    printf("%-20s %-6s %-6s %-20s %-40s\n",
+           "COMMANDE", "PID", "FD", "NAMESPACE", "FICHIER");
+    printf("%-20s %-6s %-6s %-20s %-40s\n",
+           "--------", "---", "--", "---------", "-------");
+
+    dossier_proc = opendir("/proc");
+    if (dossier_proc == NULL) {
+        printf("Erreur : impossible d'ouvrir /proc\n");
+        return;
+    }
+
+    while ((entree = readdir(dossier_proc)) != NULL) {
+
+        int pid = atoi(entree->d_name);
+        if (pid <= 0) continue;
+
+        /* Lire le nom du processus */
+        snprintf(chemin, sizeof(chemin), "/proc/%d/comm", pid);
+        FILE *f = fopen(chemin, "r");
+        if (f == NULL) continue;
+        fgets(nom_process, sizeof(nom_process), f);
+        fclose(f);
+        nom_process[strcspn(nom_process, "\n")] = 0;
+
+        /* Lire le namespace dans /proc/PID/ns/mnt */
+        /* Ce lien pointe vers quelque chose comme : mnt:[4026531840] */
+        /* Le numéro entre crochets identifie le namespace */
+        snprintf(chemin, sizeof(chemin), "/proc/%d/ns/mnt", pid);
+        int ns_len = readlink(chemin, ns_lien, sizeof(ns_lien) - 1);
+
+        /* Si on ne peut pas lire le namespace */
+        strcpy(ns_lien, "(inconnu)");
+        if (ns_len > 0) {
+            ns_lien[ns_len] = '\0';
+        }
+
+        /* Parcourir les fichiers ouverts */
+        snprintf(chemin, sizeof(chemin), "/proc/%d/fd", pid);
+        DIR *dossier_fd = opendir(chemin);
+        if (dossier_fd == NULL) continue;
+
+        struct dirent *fd_entree;
+        while ((fd_entree = readdir(dossier_fd)) != NULL) {
+
+            if (fd_entree->d_name[0] == '.') continue;
+
+            snprintf(chemin, sizeof(chemin), "/proc/%d/fd/%s", pid, fd_entree->d_name);
+            int len = readlink(chemin, lien, sizeof(lien) - 1);
+            if (len == -1) continue;
+            lien[len] = '\0';
+
+            printf("%-20s %-6d %-6s %-20s %-40s\n",
+                   nom_process, pid,
+                   fd_entree->d_name,
+                   ns_lien,
+                   lien);
+        }
+        closedir(dossier_fd);
+    }
+    closedir(dossier_proc);
+}
+
+
+/* ----------OPTION -c ----------*/
+#include "options.h"
+
+void option_c(char *nom_recherche) {
+
+    DIR *dossier_proc;
+    struct dirent *entree;
+    char chemin[512];
+    char lien[512];
+    char nom_process[256];
+
+    printf("Fichiers ouverts par les processus commençant par : %s\n\n",
+           nom_recherche);
+    printf("%-20s %-6s %-6s %-50s\n", "COMMANDE", "PID", "FD", "FICHIER");
+    printf("%-20s %-6s %-6s %-50s\n", "--------", "---", "--", "-------");
+
+    dossier_proc = opendir("/proc");
+    if (dossier_proc == NULL) {
+        printf("Erreur : impossible d'ouvrir /proc\n");
+        return;
+    }
+
+    while ((entree = readdir(dossier_proc)) != NULL) {
+
+        int pid = atoi(entree->d_name);
+        if (pid <= 0) continue;
+
+        /* Lire le nom du processus dans /proc/PID/comm */
+        snprintf(chemin, sizeof(chemin), "/proc/%d/comm", pid);
+        FILE *f = fopen(chemin, "r");
+        if (f == NULL) continue;
+        fgets(nom_process, sizeof(nom_process), f);
+        fclose(f);
+        nom_process[strcspn(nom_process, "\n")] = 0;
+
+        /* Comparer le début du nom du processus avec le nom recherché */
+        /* strncmp compare les N premiers caractères */
+        /* N = longueur du nom recherché */
+        int longueur = strlen(nom_recherche);
+        if (strncmp(nom_process, nom_recherche, longueur) != 0) {
+            continue; /* le nom ne correspond pas, on passe */
+        }
+
+        /* Le nom correspond ! On liste ses fichiers ouverts */
+        snprintf(chemin, sizeof(chemin), "/proc/%d/fd", pid);
+        DIR *dossier_fd = opendir(chemin);
+        if (dossier_fd == NULL) continue;
+
+        struct dirent *fd_entree;
+        while ((fd_entree = readdir(dossier_fd)) != NULL) {
+
+            if (fd_entree->d_name[0] == '.') continue;
+
+            snprintf(chemin, sizeof(chemin), "/proc/%d/fd/%s", pid, fd_entree->d_name);
+            int len = readlink(chemin, lien, sizeof(lien) - 1);
+            if (len == -1) continue;
+            lien[len] = '\0';
+
+            printf("%-20s %-6d %-6s %-50s\n",
+                   nom_process, pid,
+                   fd_entree->d_name,
+                   lien);
+        }
+        closedir(dossier_fd);
+    }
+    closedir(dossier_proc);
+}
 
 int gerer_options_Salif(int argc, char *argv[]) {
     /* Salif ajoute tes if ici */
