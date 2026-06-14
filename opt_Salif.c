@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>    /* pour DIR et struct dirent */
+#include <unistd.h>    /* pour readlink() */
+#include <sys/stat.h>  /* pour stat() */
 #include "options.h"
 
 /* OPTION -P */
