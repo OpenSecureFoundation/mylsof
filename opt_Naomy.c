@@ -8,6 +8,8 @@
 #include <signal.h>
 #include <setjmp.h>
 #include <unistd.h>
+#include "options.h"
+
 
 int show_ppid = 0;
 char target_file[512] = "";
@@ -250,7 +252,39 @@ void option_plus_m(const char *path) {
 
 
 
-void gerer_options_Naomy() {
+int gerer_options_Naomy(int argc, char *argv[]) {
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-R") == 0) {
+            show_ppid = 1;
+        }
+        else if (strcmp(argv[i], "-V") == 0) {
+            option_V();
+        }
+        else if (strcmp(argv[i], "-i") == 0) {
+            filter_i_active = 1;
+        }
+        else if (strcmp(argv[i], "-T") == 0) {
+            show_tcp_state = 1;
+        }
+        else if (strcmp(argv[i], "+m") == 0 && (i + 1) < argc) {
+            option_plus_m(argv[i + 1]);
+            i++;
+        }
+        else if (strcmp(argv[i], "-n") == 0) {
+            disable_dns = 1;
+        }
+        else if (strcmp(argv[i], "-b") == 0) {
+            filter_b_active = 1;
+        }
+        else if (strcmp(argv[i], "-x") == 0) {
+            filter_x_active = 1;
+        }
+        else if (argv[i][0] != '-' && argv[i][0] != '+') {
+            strncpy(target_file, argv[i], sizeof(target_file) - 1);
+        }
+    }
+
     DIR *proc_dir;
     struct dirent *proc_entry;
 
@@ -282,9 +316,9 @@ void gerer_options_Naomy() {
 
                         snprintf(link_path, sizeof(link_path), "%s/%s", fd_path, fd_entry->d_name);
                         len = option_b(link_path, target_path, sizeof(target_path) - 1);
-			if (len == -2) {
-   			    continue;
-			}
+                        if (len == -2) {
+                            continue;
+                        }
 
                         if (len != -1) {
                             target_path[len] = '\0';
@@ -293,27 +327,26 @@ void gerer_options_Naomy() {
                             option_fichier(target_path, target_file, &match);
 
                             if (filter_i_active == 1) {
-   				 match = 0;
+                                match = 0;
 
-   				 if (strncmp(target_path, "socket:[", 8) == 0) {
-       				     char inode_str[32];
-       				     int inode_len = strlen(target_path) - 9;
+                                if (strncmp(target_path, "socket:[", 8) == 0) {
+                                    char inode_str[32];
+                                    int inode_len = strlen(target_path) - 9;
 
-       				     strncpy(inode_str, target_path + 8, inode_len);
-       				     inode_str[inode_len] = '\0';
+                                    strncpy(inode_str, target_path + 8, inode_len);
+                                    inode_str[inode_len] = '\0';
 
+                                    if (option_i(inode_str) == 1) {
+                                        match = 1;
+                                    }
+                                }
+                            }
 
-       				     if (option_i(inode_str) == 1) {
-           				 match = 1;
-        			     }
-   				 }
-			    }
-
-			    if (filter_plus_m_active == 1) {
-   				if (strncmp(target_path, mount_point, strlen(mount_point)) != 0) {
-       				    match = 0;
-    				}
-			    }
+                            if (filter_plus_m_active == 1) {
+                                if (strncmp(target_path, mount_point, strlen(mount_point)) != 0) {
+                                    match = 0;
+                                }
+                            }
 
                             if (match) {
                                 printf("%-10s %-10s", proc_entry->d_name, fd_entry->d_name);
@@ -321,23 +354,23 @@ void gerer_options_Naomy() {
                                     option_R(proc_entry->d_name);
                                 }
 
-				if (strncmp(target_path, "socket:[", 8) == 0) {
-       				    char inode_str[32];
-       				    int inode_len = strlen(target_path) - 9;
-       				    strncpy(inode_str, target_path + 8, inode_len);
-       				    inode_str[inode_len] = '\0';
-       				    option_n(inode_str);
+                                if (strncmp(target_path, "socket:[", 8) == 0) {
+                                    char inode_str[32];
+                                    int inode_len = strlen(target_path) - 9;
+                                    strncpy(inode_str, target_path + 8, inode_len);
+                                    inode_str[inode_len] = '\0';
+                                    option_n(inode_str);
 
-				    if (show_tcp_state == 1) {
-           				 option_T(inode_str);
-       				    }
-   			        }
-				else {
-       				    printf(" %s", target_path);
-   				}
+                                    if (show_tcp_state == 1) {
+                                        option_T(inode_str);
+                                    }
+                                }
+                                else {
+                                    printf(" %s", target_path);
+                                }
 
-			        printf("\n");
-   				items_found++;
+                                printf("\n");
+                                items_found++;
                             }
                         }
                     }
@@ -350,41 +383,5 @@ void gerer_options_Naomy() {
     if (verbose == 1 && strlen(target_file) > 0 && items_found == 0) {
         printf("mylsof: status error on %s: No such file or directory\n", target_file);
     }
-}
-
-int main(int argc, char *argv[]) {
-
-    for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-R") == 0) {
-            show_ppid = 1;
-        }
-	else if (strcmp(argv[i], "-V") == 0) {
-            option_V();
-        }
-	else if (strcmp(argv[i], "-i") == 0) {
-            filter_i_active = 1;
-        }
-	else if (strcmp(argv[i], "-T") == 0) {
-            show_tcp_state = 1;
-        }
-	else if (strcmp(argv[i], "+m") == 0 && (i + 1) < argc) {
-            option_plus_m(argv[i + 1]);
-            i++;
-        }
-	else if (strcmp(argv[i], "-n") == 0) {
-            disable_dns = 1;
-        }
-	else if (strcmp(argv[i], "-b") == 0) {
-            filter_b_active = 1;
-        }
-	else if (strcmp(argv[i], "-x") == 0) {
-            filter_x_active = 1;
-        }
-	else if (argv[i][0] != '-' && argv[i][0] != '+') {
-            strncpy(target_file, argv[i], sizeof(target_file) - 1);
-        }
-    }
-
-    gerer_options_Naomy();
     return 0;
 }
