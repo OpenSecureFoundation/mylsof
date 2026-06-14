@@ -338,100 +338,29 @@ void    opt_w(t_lsof *data)
     }
 }
 
-int     main(int argc, char **argv)
+int	gerer_options_Cassandra(int argc, char *argv[], t_lsof *data)
 {
-    t_lsof  data;
-    int     i;
-
-    memset(&data, 0, sizeof(t_lsof));
-    data.timeout   = 15;
-    data.w_mode    = -1;
-    data.fd_filter = -1;
-
-    if (argc < 2)
-    {
-        fprintf(stderr, "Usage: %s [options]\n", argv[0]);
-        fprintf(stderr, "  -d <fd>        Filtrer par file descriptor\n");
-        fprintf(stderr, "  -u <user>      Filtrer par utilisateur\n");
-        fprintf(stderr, "  -l             Afficher les UIDs numériques\n");
-        fprintf(stderr, "  -F             Format parseable\n");
-        fprintf(stderr, "  -S <sec>       Timeout (min 2s)\n");
-        fprintf(stderr, "  -D <dir>       Chercher dans un répertoire\n");
-        fprintf(stderr, "  +e/-e <path>   Ignorer/signaler erreurs filesystem\n");
-        fprintf(stderr, "  -k <file>      Fichier kernel map\n");
-        fprintf(stderr, "  +w/-w          Supprimer/activer les warnings\n");
-        return (1);
-    }
-
-    i = 1;
-    while (i < argc)
-    {
-        if (strcmp(argv[i], "-d") == 0 && i + 1 < argc)
-        {
-            data.fd_filter = atoi(argv[++i]);
-            opt_d(&data);
-        }
-        else if (strcmp(argv[i], "-u") == 0 && i + 1 < argc)
-        {
-            data.username = argv[++i];
-            opt_u(&data);
-        }
-        else if (strcmp(argv[i], "-l") == 0)
-        {
-            opt_l(&data);
-        }
-        else if (strcmp(argv[i], "-F") == 0)
-        {
-            opt_F(&data);
-        }
-        else if (strcmp(argv[i], "-S") == 0 && i + 1 < argc)
-        {
-            data.timeout = atoi(argv[++i]);
-            opt_S(&data);
-        }
-        else if (strcmp(argv[i], "-D") == 0 && i + 1 < argc)
-        {
-            data.directory = argv[++i];
-            opt_D(&data);
-        }
-        else if (strcmp(argv[i], "+e") == 0 && i + 1 < argc)
-        {
-            data.e_mode = 1;
-            data.e_path = argv[++i];
-            opt_e(&data);
-        }
-        else if (strcmp(argv[i], "-e") == 0 && i + 1 < argc)
-        {
-            data.e_mode = 0;
-            data.e_path = argv[++i];
-            opt_e(&data);
-        }
-        else if (strcmp(argv[i], "-k") == 0 && i + 1 < argc)
-        {
-            data.kernel_map = argv[++i];
-            opt_k(&data);
-        }
-        else if (strcmp(argv[i], "+w") == 0)
-        {
-            data.w_mode = 1;
-            opt_w(&data);
-        }
-        else if (strcmp(argv[i], "-w") == 0)
-        {
-            data.w_mode = 0;
-            opt_w(&data);
-        }
-        else
-        {
-            fprintf(stderr, "Option inconnue : %s\n", argv[i]);
-        }
-        i++;
-    }
-    return (0);
+	if (strcmp(argv[1], "-d") == 0 && argc >= 3)
+		{ data->fd_filter = atoi(argv[2]); opt_d(data); return (1); }
+	if (strcmp(argv[1], "-u") == 0 && argc >= 3)
+		{ data->username = argv[2]; opt_u(data); return (1); }
+	if (strcmp(argv[1], "-l") == 0)
+		{ opt_l(data); return (1); }
+	if (strcmp(argv[1], "-F") == 0)
+		{ opt_F(data); return (1); }
+	if (strcmp(argv[1], "-S") == 0 && argc >= 3)
+		{ data->timeout = atoi(argv[2]); opt_S(data); return (1); }
+	if (strcmp(argv[1], "-D") == 0 && argc >= 3)
+		{ data->directory = argv[2]; opt_D(data); return (1); }
+	if (strcmp(argv[1], "+e") == 0 && argc >= 3)
+		{ data->e_mode = 1; data->e_path = argv[2]; opt_e(data); return (1); }
+	if (strcmp(argv[1], "-e") == 0 && argc >= 3)
+		{ data->e_mode = 0; data->e_path = argv[2]; opt_e(data); return (1); }
+	if (strcmp(argv[1], "-k") == 0 && argc >= 3)
+		{ data->kernel_map = argv[2]; opt_k(data); return (1); }
+	if (strcmp(argv[1], "+w") == 0)
+		{ data->w_mode = 1; opt_w(data); return (1); }
+	if (strcmp(argv[1], "-w") == 0)
+		{ data->w_mode = 0; opt_w(data); return (1); }
+	return (0);
 }
-
-
-
-
-
-
