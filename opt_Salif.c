@@ -741,7 +741,42 @@ void option_c(char *nom_recherche) {
     closedir(dossier_proc);
 }
 
+/*appel des fonctions*/
+
 int gerer_options_Salif(int argc, char *argv[]) {
-    /* Salif ajoute tes if ici */
+
+    int i;
+    for (i = 1; i < argc; i++) {
+
+        if (strcmp(argv[i], "-P") == 0) {
+            option_P();
+        }
+        else if (strcmp(argv[i], "-g") == 0 && i + 1 < argc) {
+            option_g(argv[i + 1]);
+            i++;
+        }
+        else if (strcmp(argv[i], "-U") == 0) {
+            option_U();
+        }
+        else if (strcmp(argv[i], "-s") == 0) {
+            option_s(NULL);
+        }
+        else if (strcmp(argv[i], "-X") == 0) {
+            option_X();
+        }
+        else if (strcmp(argv[i], "-N") == 0) {
+            option_N();
+        }
+        else if (strcmp(argv[i], "-Z") == 0) {
+            option_Z();
+        }
+        else if (strcmp(argv[i], "-j") == 0) {
+            option_j();
+        }
+        else if (strcmp(argv[i], "-c") == 0 && i + 1 < argc) {
+            option_c(argv[i + 1]);
+            i++;
+        }
+    }
     return 0;
 }
