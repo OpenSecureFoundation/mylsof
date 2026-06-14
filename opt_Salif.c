@@ -13,9 +13,9 @@ void option_P() {
     DIR *proc;
     struct dirent *entree;
 
-    char chemin[256];
-    char lien[256];
-    char nom[256];
+    char chemin[512];
+    char lien[512];
+    char nom[512];
 
     proc = opendir("/proc");
 
@@ -100,9 +100,9 @@ void option_g(char *grp) {
     DIR *proc;
     struct dirent *entree;
 
-    char chemin[256];
-    char ligne[256];
-    char nom[256];
+    char chemin[512];
+    char ligne[512];
+    char nom[512];
 
     proc = opendir("/proc");
 
@@ -181,7 +181,7 @@ void option_U() {
 
     char chemin[512];
     char lien[512];
-    char nom_process[256];
+    char nom_process[512];
 
     dossier_proc = opendir("/proc");
 
@@ -275,9 +275,9 @@ void option_s(char *proto) {
     DIR *proc;
     struct dirent *entree;
 
-    char chemin[256];
-    char lien[256];
-    char nom[256];
+    char chemin[512];
+    char lien[512];
+    char nom[512];
 
     struct stat info;
 
@@ -369,7 +369,7 @@ void option_X() {
 
     char chemin[512];
     char ligne[1024];
-    char nom_process[256];
+    char nom_process[512];
 
     dossier_proc = opendir("/proc");
 
