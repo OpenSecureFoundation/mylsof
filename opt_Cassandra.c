@@ -337,30 +337,37 @@ void    opt_w(t_lsof *data)
         printf("Mode -w : tous les avertissements sont activés\n");
     }
 }
-
-int	gerer_options_Cassandra(int argc, char *argv[], t_lsof *data)
+int	gerer_options_Cassandra(int argc, char *argv[])
 {
-	if (strcmp(argv[1], "-d") == 0 && argc >= 3)
-		{ data->fd_filter = atoi(argv[2]); opt_d(data); return (1); }
-	if (strcmp(argv[1], "-u") == 0 && argc >= 3)
-		{ data->username = argv[2]; opt_u(data); return (1); }
-	if (strcmp(argv[1], "-l") == 0)
-		{ opt_l(data); return (1); }
-	if (strcmp(argv[1], "-F") == 0)
-		{ opt_F(data); return (1); }
-	if (strcmp(argv[1], "-S") == 0 && argc >= 3)
-		{ data->timeout = atoi(argv[2]); opt_S(data); return (1); }
+         t_lsof data;
+
+         memset(&data,0, sizeof(t_lsof));
+         data.timeout   = 15;
+         data.w_mode    = -1;
+         data.fd_filter = -1;
+
+        if (strcmp(argv[1], "-d") == 0 && argc >= 3)
+	       { data.fd_filter = atoi(argv[2]); opt_d(&data); return (1); }
+        if (strcmp(argv[1], "-u") == 0 && argc >= 3)
+	       { data->username = argv[2]; opt_u(&data); return (1); }
+        if (strcmp(argv[1], "-l") == 0)
+	       { opt_l(&data); return (1); }
+        if (strcmp(argv[1], "-F") == 0)
+	       { opt_F(&data); return (1); }
+        if (strcmp(argv[1], "-S") == 0 && argc >= 3)
+	       { data->timeout = atoi(argv[2]); opt_S(&data); return (1); }
 	if (strcmp(argv[1], "-D") == 0 && argc >= 3)
-		{ data->directory = argv[2]; opt_D(data); return (1); }
-	if (strcmp(argv[1], "+e") == 0 && argc >= 3)
-		{ data->e_mode = 1; data->e_path = argv[2]; opt_e(data); return (1); }
+	       { data->directory = argv[2]; opt_D(&data); return (1); }
+       	if (strcmp(argv[1], "+e") == 0 && argc >= 3)
+	       { data->e_mode = 1; data->e_path = argv[2]; opt_e(&data); return (1); }
 	if (strcmp(argv[1], "-e") == 0 && argc >= 3)
-		{ data->e_mode = 0; data->e_path = argv[2]; opt_e(data); return (1); }
+	       { data->e_mode = 0; data->e_path = argv[2]; opt_e(&data); return (1); }
 	if (strcmp(argv[1], "-k") == 0 && argc >= 3)
-		{ data->kernel_map = argv[2]; opt_k(data); return (1); }
+	       { data->kernel_map = argv[2]; opt_k(&data); return (1); }
 	if (strcmp(argv[1], "+w") == 0)
-		{ data->w_mode = 1; opt_w(data); return (1); }
+	       { data->w_mode = 1; opt_w(&data); return (1); }
 	if (strcmp(argv[1], "-w") == 0)
-		{ data->w_mode = 0; opt_w(data); return (1); }
+	       { data->w_mode = 0; opt_w(&data); return (1); }
 	return (0);
 }
+
