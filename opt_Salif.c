@@ -357,7 +357,7 @@ void option_s(char *proto) {
 
 
 
-/* ----------OPTION ----------*/
+/* ----------OPTION -X----------*/
 
 
 void option_X() {
@@ -442,6 +442,86 @@ void option_X() {
 
     closedir(dossier_proc);
 }
+
+
+
+/* ----------OPTION -Z----------*/
+
+#include "options.h"
+
+void option_Z(void) {
+
+    DIR *dossier_proc;
+    struct dirent *entree;
+    char chemin[512];
+    char lien[512];
+    char nom_process[512];
+    char contexte[256];         /* stocke le label SELinux */
+
+    printf("Contextes SELinux des processus\n\n");
+    printf("%-20s %-6s %-6s %-30s %-40s\n",
+           "COMMANDE", "PID", "FD", "CONTEXTE SELinux", "FICHIER");
+    printf("%-20s %-6s %-6s %-30s %-40s\n",
+           "--------", "---", "--", "----------------", "-------");
+
+    dossier_proc = opendir("/proc");
+    if (dossier_proc == NULL) {
+        printf("Erreur : impossible d'ouvrir /proc\n");
+        return;
+    }
+
+    while ((entree = readdir(dossier_proc)) != NULL) {
+
+        int pid = atoi(entree->d_name);
+        if (pid <= 0) continue;
+
+        /* Lire le nom du processus */
+        snprintf(chemin, sizeof(chemin), "/proc/%d/comm", pid);
+        FILE *f_comm = fopen(chemin, "r");
+        if (f_comm == NULL) continue;
+        fgets(nom_process, sizeof(nom_process), f_comm);
+        fclose(f_comm);
+        nom_process[strcspn(nom_process, "\n")] = 0;
+
+        /* Lire le contexte SELinux dans /proc/PID/attr/current */
+        /* Ce fichier contient le label de sécurité du processus */
+        snprintf(chemin, sizeof(chemin), "/proc/%d/attr/current", pid);
+        FILE *f_attr = fopen(chemin, "r");
+
+        /* Si le fichier n'existe pas, SELinux n'est pas actif */
+        strcpy(contexte, "(SELinux inactif)");
+        if (f_attr != NULL) {
+            fgets(contexte, sizeof(contexte), f_attr);
+            fclose(f_attr);
+            contexte[strcspn(contexte, "\n")] = 0; /* enlever le \n */
+        }
+
+        /* Parcourir les fichiers ouverts du processus */
+        snprintf(chemin, sizeof(chemin), "/proc/%d/fd", pid);
+        DIR *dossier_fd = opendir(chemin);
+        if (dossier_fd == NULL) continue;
+
+        struct dirent *fd_entree;
+        while ((fd_entree = readdir(dossier_fd)) != NULL) {
+
+            if (fd_entree->d_name[0] == '.') continue;
+
+            snprintf(chemin, sizeof(chemin), "/proc/%d/fd/%s", pid, fd_entree->d_name);
+            int len = readlink(chemin, lien, sizeof(lien) - 1);
+            if (len == -1) continue;
+            lien[len] = '\0';
+
+            printf("%-20s %-6d %-6s %-30s %-40s\n",
+                   nom_process, pid,
+                   fd_entree->d_name,
+                   contexte,
+                   lien);
+        }
+        closedir(dossier_fd);
+    }
+    closedir(dossier_proc);
+}
+
 
 
 
