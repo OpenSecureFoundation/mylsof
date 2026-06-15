@@ -673,10 +673,10 @@ void option_j(void) {
 }
 
 
-/* ----------OPTION -c ----------*/
+/* ----------OPTION +c ----------*/
 #include "options.h"
 
-void option_c(char *nom_recherche) {
+void option_c_plus(char *nom_recherche) {
 
     DIR *dossier_proc;
     struct dirent *entree;
@@ -773,8 +773,8 @@ int gerer_options_Salif(int argc, char *argv[]) {
         else if (strcmp(argv[i], "-j") == 0) {
             option_j();
         }
-        else if (strcmp(argv[i], "-c") == 0 && i + 1 < argc) {
-            option_c(argv[i + 1]);
+        else if (strcmp(argv[i], "+c") == 0 && i + 1 < argc) {
+            option_c_plus(argv[i + 1]);
             i++;
         }
     }

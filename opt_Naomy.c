@@ -295,7 +295,7 @@ int gerer_options_Naomy(int argc, char *argv[]) {
     proc_dir = opendir("/proc");
     if (proc_dir == NULL) {
         perror("Impossible d'ouvrir /proc");
-        return;
+        return(0);
     }
 
     while ((proc_entry = readdir(proc_dir)) != NULL) {
@@ -310,7 +310,7 @@ int gerer_options_Naomy(int argc, char *argv[]) {
             if (fd_dir != NULL) {
                 while ((fd_entry = readdir(fd_dir)) != NULL) {
                     if (strcmp(fd_entry->d_name, ".") != 0 && strcmp(fd_entry->d_name, "..") != 0) {
-                        char link_path[512];
+                        char link_path[1024];
                         char target_path[1024];
                         ssize_t len;
 
